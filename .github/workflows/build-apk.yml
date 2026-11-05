@@ -39,3 +39,4 @@ jobs:
       # here (avoids Gradle / Android Gradle Plugin version mismatches), then
       # re-applies the game's settings: label, portrait, min SDK 31, icons.
       - name: Prepare Android project
+      working
