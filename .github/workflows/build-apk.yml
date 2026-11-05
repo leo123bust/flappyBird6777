@@ -1,3 +1,25 @@
+name: Build Flutter APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Find Flutter project directory
+        id: proj
+        run: |
+          # Търси директорията, в която се намира pubspec.yaml
+          DIR=$(find . -name "pubspec.yaml" -maxdepth 2 -exec dirname {} \;)
+          if [ -z "$DIR" ]; then
+            DIR="."
           echo "Flutter project folder: $DIR"
           echo "dir=$DIR" >> "$GITHUB_OUTPUT"
 
@@ -17,63 +39,4 @@
       # here (avoids Gradle / Android Gradle Plugin version mismatches), then
       # re-applies the game's settings: label, portrait, min SDK 31, icons.
       - name: Prepare Android project
-        working-directory: ${{ steps.proj.outputs.dir }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          flutter --version
-          SCAFFOLD="$RUNNER_TEMP/scaffold"
-          flutter create --platforms=android --org com.flappy67 --project-name flappy_67 "$SCAFFOLD"
-          rm -rf android
-          cp -r "$SCAFFOLD/android" android
-
-          MANIFEST=android/app/src/main/AndroidManifest.xml
-          sed -i 's|android:label="[^"]*"|android:label="Flappy 67"|' "$MANIFEST"
-          if ! grep -q 'screenOrientation' "$MANIFEST"; then
-            sed -i 's|android:exported="true"|android:exported="true"\n            android:screenOrientation="portrait"|' "$MANIFEST"
-          fi
-          for f in android/app/build.gradle.kts android/app/build.gradle; do
-            if [ -f "$f" ]; then
-              sed -i -E 's/minSdk(Version)?[ =]+flutter\.minSdkVersion/minSdk = 31/' "$f"
-            fi
-          done
-
-          # Bird sprites + launcher icons
-          if [ -f tools/generate_assets.py ]; then
-            pip install --quiet pillow
-            python3 tools/generate_assets.py
-          fi
-
-          echo "---- AndroidManifest.xml ----"
-          cat "$MANIFEST"
-
-      - name: Get dependencies
-        working-directory: ${{ steps.proj.outputs.dir }}
-        run: flutter pub get
-
-      - name: Build release APK
-        working-directory: ${{ steps.proj.outputs.dir }}
-        run: flutter build apk --release
-
-      - name: Collect APK
-        run: |
-          mkdir -p dist
-          cp "${{ steps.proj.outputs.dir }}/build/app/outputs/flutter-apk/app-release.apk" dist/flappy_67.apk
-          ls -la dist
-
-      - name: Upload APK as a build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: flappy_67-apk
-          path: dist/flappy_67.apk
-
-      - name: Publish APK as a GitHub Release (easy phone download)
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: apk-${{ github.run_number }}
-          name: Flappy 67 APK (build ${{ github.run_number }})
-          body: |
-            Debug-signed release build of Flappy 67.
-            Download `flappy_67.apk` below, open it on your Android phone and allow
-            "Install unknown apps" for your browser/file manager when asked.
-          files: dist/flappy_67.apk
+        working
